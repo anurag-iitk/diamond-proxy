@@ -3,25 +3,32 @@ pragma solidity ^0.8.0;
 
 import { LibApprover } from "../libraries/LibApprover.sol";
 import { LibDiamond } from "../libraries/LibDiamond.sol";
+import {IApprover} from "../interfaces/IApprover.sol";
+import {AppStorage, LibAppStorage} from "../libraries/LibAppStorage.sol";
 
-contract ApprovalFacet {
+contract ApprovalFacet is IApprover{
 
-    event ApproverAdded(address indexed approver);
-    event ApproverDeleted(address indexed approver);
-    
-    function addApprover(address _approver) external {
+    function addApprover(address _approver) external override {
         LibDiamond.enforceIsContractOwner();
-        LibApprover.addApprover(_approver);
+        require(_approver != address(0), "Address must not equal to zero");
+        AppStorage storage ds = LibAppStorage.getAppStorage();
+        require(!ds.approversMap[_approver], "Approver already exist");
+        ds.approversMap[_approver] = true;
+        ds.approversCount++;
         emit ApproverAdded(_approver);
     }
 
-    function deleteApprover(address _approver) external {
+    function deleteApprover(address _approver) external override {
         LibDiamond.enforceIsContractOwner();
-        LibApprover.deleteApprover(_approver);
+        require(_approver != address(0), "Address must not equal to zero");
+        AppStorage storage ds = LibAppStorage.getAppStorage();
+        require(ds.approversMap[_approver], "Approver does not exist");
+        delete (ds.approversMap[_approver]);
+        ds.approversCount--;
         emit ApproverDeleted(_approver);
     }
 
-    function getApprover(address _approver) external view {
-        LibApprover.getApprover(_approver);
+    function getApprover(address _approver) external override view returns (bool) {
+        return LibApprover.getApprover(_approver);
     }
 }
